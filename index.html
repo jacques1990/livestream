@@ -1,244 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading War Room</title>
+
+<style>
+body{
+  margin:0;
+  background:#050505;
+  color:#fff;
+  font-family:Arial;
+}
+
+.topbar{
+  padding:10px;
+  background:#111;
+  display:flex;
+  gap:10px;
+}
+
+button{
+  padding:8px 12px;
+  background:#222;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+}
+
+.layout{
+  display:flex;
+  height:calc(100vh - 50px);
+}
+
+.main{
+  flex:1;
+  background:#000;
+}
+
+.main iframe{
+  width:100%;
+  height:100%;
+  border:0;
+}
+
+.side{
+  width:40%;
+  overflow:auto;
+  background:#0a0a0a;
+  padding:10px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.card{
+  background:#111;
+  border:1px solid #333;
+}
+
+.card iframe{
+  width:100%;
+  height:200px;
+  border:0;
+}
+
+.check{
+  padding:5px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <button onclick="showAll()">All Feeds</button>
+  <button onclick="fourMode()">4 Screen</button>
+  <button onclick="savePreset()">Save</button>
+  <button onclick="loadPreset()">Load</button>
+  <button onclick="loadSplit()">Split Screen</button>
+</div>
+
+<div class="layout">
+  <div class="main">
+    <iframe id="mainPlayer"></iframe>
+  </div>
+
+  <div class="side">
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<script>
+
+// ------------------ STATE ------------------
 let streams = [];
-const FAVORITE_KEY = "jacq.favoriteFourStreams.v1";
+let selected = [];
+const KEY = "streamsPreset";
 
-const streamGrid = document.getElementById("streamGrid");
-const selectedList = document.getElementById("selectedList");
-const mainPlayer = document.getElementById("mainPlayer");
-const mainTitle = document.getElementById("mainTitle");
-const mainStatus = document.getElementById("mainStatus");
-const columnSelect = document.getElementById("columnSelect");
-
-let selectedIndexes = [];
-let currentMainIndex = 0;
-let mainMuted = false;
-
-// 🔥 LOAD JSON FIRST
+// ------------------ LOAD JSON ------------------
 fetch("https://jacques1990.github.io/livestream/streams.json")
-  .then(res => res.json())
-  .then(data => {
-    streams = data;
+.then(r => r.json())
+.then(data => {
+  streams = data;
+  init();
+});
 
-    // ✅ ONLY run after streams loaded
-    renderSelectedList();
-    showAllFeeds();
-    openMain(0, true);
-
-    loadSavedPreset();
-  });
-
-// ----------------------------
-
-function withParams(baseUrl, mute = true){
-  const separator = baseUrl.includes("?") ? "&" : "?";
-  return `${baseUrl}${separator}autoplay=1&mute=${mute ? 1 : 0}`;
+// ------------------ INIT ------------------
+function init(){
+  render();
+  openMain(0);
 }
 
-function openMain(index, unmute = true){
-  currentMainIndex = index;
-  const s = streams[index];
+// ------------------ RENDER ------------------
+function render(indexes = streams.map((_,i)=>i)){
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
 
-  mainTitle.textContent = s.name;
-  mainStatus.textContent = `Focused on ${s.name}`;
-  mainPlayer.src = withParams(s.url, !unmute ? true : false);
-  mainMuted = !unmute;
+  indexes.forEach(i=>{
+    const s = streams[i];
 
-  updateActiveCards();
-}
+    const div = document.createElement("div");
+    div.className = "card";
 
-function updateActiveCards(){
-  document.querySelectorAll(".stream-card").forEach((card, idx) => {
-    card.style.outline = idx === currentMainIndex ? "2px solid #e11d48" : "none";
-  });
-}
-
-// ----------------------------
-// UI BUILDING
-// ----------------------------
-
-function buildCard(stream, index){
-  const card = document.createElement("div");
-  card.className = "stream-card";
-
-  card.innerHTML = `
-    <div class="stream-top">
-      <div class="stream-name">${stream.name}</div>
-      <div class="actions">
-        <button class="focus-btn" data-index="${index}">Focus</button>
-        <button class="solo-btn" data-index="${index}">Fullscreen</button>
+    div.innerHTML = `
+      <iframe src="${s.url}?autoplay=1&mute=1"></iframe>
+      <div class="check">
+        <button onclick="openMain(${i})">Focus</button>
+        <input type="checkbox" onchange="toggle(${i},this.checked)">
       </div>
-    </div>
+    `;
 
-    <div class="stream-frame">
-      <iframe src="${withParams(stream.url, true)}"></iframe>
-    </div>
-
-    <div class="check-row">
-      <input type="checkbox" class="pick-stream" data-index="${index}">
-      <label>Select for 4-screen</label>
-    </div>
-  `;
-
-  return card;
+    grid.appendChild(div);
+  });
 }
 
-function renderGrid(indexes = streams.map((_, i) => i), columns = 2, mode = "all"){
-  streamGrid.innerHTML = "";
-  streamGrid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-
-  indexes.forEach(i => {
-    const card = buildCard(streams[i], i);
-
-    if (mode === "four"){
-      card.querySelector(".stream-frame").style.height = "300px";
-    }
-
-    streamGrid.appendChild(card);
-  });
-
-  // attach events
-  document.querySelectorAll(".focus-btn").forEach(btn => {
-    btn.onclick = () => openMain(Number(btn.dataset.index), true);
-  });
-
-  document.querySelectorAll(".solo-btn").forEach(btn => {
-    btn.onclick = () => {
-      openMain(Number(btn.dataset.index), true);
-      requestFullscreen();
-    };
-  });
-
-  document.querySelectorAll(".pick-stream").forEach(box => {
-    const idx = Number(box.dataset.index);
-    box.checked = selectedIndexes.includes(idx);
-
-    box.onchange = (e) => toggleSelection(idx, e.target.checked);
-  });
-
-  updateActiveCards();
+// ------------------ MAIN ------------------
+function openMain(i){
+  document.getElementById("mainPlayer").src =
+    streams[i].url + "?autoplay=1";
 }
 
-// ----------------------------
-// MODES
-// ----------------------------
-
-function showAllFeeds(){
-  renderGrid(streams.map((_, i) => i), Number(columnSelect.value || 2), "all");
-}
-
-function fourScreenMode(){
-  if (selectedIndexes.length !== 4){
-    alert("Select exactly 4 streams");
-    return;
-  }
-
-  renderGrid(selectedIndexes, 2, "four");
-  openMain(selectedIndexes[0], true);
-}
-
-// ----------------------------
-// SELECTION
-// ----------------------------
-
-function toggleSelection(index, checked){
-  if (checked){
-    if (selectedIndexes.length >= 4){
-      alert("Max 4 streams");
+// ------------------ SELECT ------------------
+function toggle(i, checked){
+  if(checked){
+    if(selected.length >= 4){
+      alert("Only 4 allowed");
       return;
     }
-    selectedIndexes.push(index);
-  } else {
-    selectedIndexes = selectedIndexes.filter(v => v !== index);
+    selected.push(i);
+  }else{
+    selected = selected.filter(x=>x!==i);
   }
-
-  renderSelectedList();
 }
 
-function renderSelectedList(){
-  selectedList.innerHTML = "";
+// ------------------ MODES ------------------
+function showAll(){
+  render();
+}
 
-  if (selectedIndexes.length === 0){
-    selectedList.innerHTML = "No streams selected";
+function fourMode(){
+  if(selected.length !== 4){
+    alert("Select 4 streams");
     return;
   }
-
-  selectedIndexes.forEach(i => {
-    const div = document.createElement("div");
-    div.className = "selected-chip";
-    div.innerText = streams[i]?.name || "";
-    selectedList.appendChild(div);
-  });
+  render(selected);
+  openMain(selected[0]);
 }
 
-// ----------------------------
-// PRESET
-// ----------------------------
-
+// ------------------ PRESET ------------------
 function savePreset(){
-  if (selectedIndexes.length !== 4){
-    alert("Pick 4 streams first");
-    return;
-  }
-
-  localStorage.setItem(FAVORITE_KEY, JSON.stringify(selectedIndexes));
+  localStorage.setItem(KEY, JSON.stringify(selected));
   alert("Saved");
 }
 
 function loadPreset(){
-  const raw = localStorage.getItem(FAVORITE_KEY);
-  if (!raw) return;
+  const d = localStorage.getItem(KEY);
+  if(!d) return;
 
-  selectedIndexes = JSON.parse(raw);
-  renderSelectedList();
-  fourScreenMode();
+  selected = JSON.parse(d);
+  fourMode();
 }
 
-function loadSavedPreset(){
-  const raw = localStorage.getItem(FAVORITE_KEY);
-  if (!raw) return;
-
-  selectedIndexes = JSON.parse(raw);
-  renderSelectedList();
-}
-
-// ----------------------------
-// UTIL
-// ----------------------------
-
-function requestFullscreen(){
-  const el = document.querySelector(".main-player-wrap");
-  if (el.requestFullscreen) el.requestFullscreen();
-}
-
+// ------------------ SPLIT ------------------
 function loadSplit(){
-  mainPlayer.src = "https://jacques1990.github.io/livestream/splitscreen.html";
+  document.getElementById("mainPlayer").src =
+    "https://jacques1990.github.io/livestream/splitscreen.html";
 }
 
-// ----------------------------
-// BUTTONS
-// ----------------------------
+</script>
 
-document.getElementById("showAllBtn").onclick = showAllFeeds;
-document.getElementById("fourScreenBtn").onclick = fourScreenMode;
-document.getElementById("savePresetBtn").onclick = savePreset;
-document.getElementById("loadPresetBtn").onclick = loadPreset;
-document.getElementById("clearPresetBtn").onclick = () => {
-  localStorage.removeItem(FAVORITE_KEY);
-  selectedIndexes = [];
-  renderSelectedList();
-  showAllFeeds();
-};
-
-// ----------------------------
-// SHORTCUTS
-// ----------------------------
-
-document.addEventListener("keydown", (e) => {
-
-  if (!isNaN(e.key) && e.key !== "0"){
-    const idx = parseInt(e.key) - 1;
-    if (idx < streams.length) openMain(idx, true);
-  }
-
-  if (e.key === "f") requestFullscreen();
-  if (e.key === "m") document.getElementById("muteToggle").click();
-});
+</body>
+</html>
