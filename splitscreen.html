@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>4 Screen Trading Mode</title>
+
+  <style>
+    body {
+      margin:0;
+      background:#000;
+      font-family:Arial;
+      overflow:hidden;
+    }
+
+    /* SELECTOR PANEL */
+    .selector {
+      position:fixed;
+      top:0;
+      left:0;
+      width:100%;
+      background:#111;
+      color:white;
+      padding:10px;
+      z-index:10;
+    }
+
+    .selector button {
+      padding:6px 10px;
+      margin:5px;
+      background:#333;
+      color:white;
+      border:none;
+      cursor:pointer;
+    }
+
+    .selector button:hover {
+      background:red;
+    }
+
+    /* GRID */
+    .grid {
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      height:100vh;
+
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+
+      gap:0; /* 🔥 NO GAP */
+    }
+
+    .feed {
+      width:100%;
+      height:100%;
+      border:none;
+    }
+
+    iframe {
+      width:100%;
+      height:100%;
+      border:none;
+    }
+
+    /* HIDE SELECTOR MODE */
+    .pure .selector {
+      display:none;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- SELECTOR -->
+<div class="selector">
+  <strong>Select 4 Streams:</strong><br>
+  <div id="checkboxes"></div>
+  <button onclick="startSplit()">▶ Start 4 Screen</button>
+  <button onclick="savePreset()">💾 Save</button>
+  <button onclick="loadPreset()">⚡ Preset</button>
+</div>
+
+<!-- GRID -->
+<div class="grid" id="grid"></div>
+
+<script>
+
+const streams = [
+  {name:"Euro News", url:"https://www.youtube.com/embed/Ap-UM1O9RBU"},
+  {name:"Weather", url:"https://www.youtube.com/embed/l0tl9g0Jnf0"},
+  {name:"Asianet", url:"https://www.youtube.com/embed/4wExBtPQ-JA"},
+  {name:"CBC", url:"https://www.youtube.com/embed/5vfaDsMhCF4"},
+  {name:"French", url:"https://www.youtube.com/embed/pykpO5kQJ98"},
+  {name:"Al Jazeera", url:"https://www.youtube.com/embed/gCNeDWCI0vo"},
+  {name:"Fox", url:"https://www.youtube.com/embed/C96oohpWBGw"},
+  {name:"Bloomberg", url:"https://www.youtube.com/embed/iEpJwprxDdk"},
+  {name:"NDTV", url:"https://www.youtube.com/embed/44OkuNBFNXc"},
+  {name:"Agenda TV", url:"https://www.youtube.com/embed/Tf_UjBMIzNo"}
+];
+
+const grid = document.getElementById("grid");
+const checkboxDiv = document.getElementById("checkboxes");
+
+// 🔹 CREATE CHECKBOX UI
+streams.forEach((s, i) => {
+  checkboxDiv.innerHTML += `
+    <label>
+      <input type="checkbox" value="${i}"> ${s.name}
+    </label>
+  `;
+});
+
+// 🔹 START SPLIT
+function startSplit() {
+  grid.innerHTML = "";
+
+  const selected = [...document.querySelectorAll("input:checked")]
+    .map(cb => streams[cb.value])
+    .slice(0,4);
+
+  if (selected.length !== 4) {
+    alert("Select exactly 4 streams");
+    return;
+  }
+
+  selected.forEach(s => {
+    const iframe = document.createElement("iframe");
+    iframe.src = s.url + "?autoplay=1&mute=1";
+    grid.appendChild(iframe);
+  });
+
+  // 🔥 PURE MODE (no UI)
+  document.body.classList.add("pure");
+}
+
+// 🔹 SAVE
+function savePreset() {
+  const selected = [...document.querySelectorAll("input:checked")]
+    .map(cb => cb.value);
+
+  localStorage.setItem("fav4", JSON.stringify(selected));
+  alert("Saved!");
+}
+
+// 🔹 LOAD
+function loadPreset() {
+  const saved = JSON.parse(localStorage.getItem("fav4") || "[]");
+
+  document.querySelectorAll("input").forEach(cb => {
+    cb.checked = saved.includes(cb.value);
+  });
+}
+
+// 🔹 ESC to exit pure mode
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    document.body.classList.remove("pure");
+  }
+});
+
+</script>
+
+</body>
+</html>
