@@ -295,6 +295,7 @@
 <body>
   <div class="topbar">
     <div class="title">🔴 JACQ Trading War Room Pro</div>
+    <button onclick="loadSplit()">4 Split Screen</button>
     <div class="controls">
       <button id="showAllBtn">All Feeds</button>
       <button id="fourScreenBtn" class="good">4 Screen Mode</button>
@@ -554,6 +555,10 @@
       const wrap = document.querySelector(".main-player-wrap");
       if (wrap.requestFullscreen) wrap.requestFullscreen();
     }
+    
+    function loadSplit() {
+  mainPlayer.src = "https://jacques1990.github.io/livestream/splitscreen.html";
+}
 
     document.getElementById("showAllBtn").addEventListener("click", showAllFeeds);
     document.getElementById("fourScreenBtn").addEventListener("click", () => fourScreenMode());
