@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Trading War Room PRO</title>
+
+  <style>
+    body {
+      margin:0;
+      background:#000;
+      color:white;
+      font-family:Arial;
+      overflow:auto; /* ✅ ENABLE SCROLL */
+    }
+
+    .topbar {
+      padding:10px;
+      background:#111;
+      text-align:center;
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+
+    .controls {
+      padding:10px;
+      background:#181818;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+
+    button {
+      padding:8px 12px;
+      background:#333;
+      color:white;
+      border:none;
+      cursor:pointer;
+      border-radius:4px;
+    }
+
+    button:hover {
+      background:red;
+    }
+
+    /* MAIN GRID AREA */
+    .grid {
+      display:grid;
+      gap:10px;
+      padding:10px;
+    }
+
+    .feed {
+      position:relative;
+    }
+
+    iframe {
+      width:100%;
+      height:300px;
+      border:none;
+    }
+
+    .label {
+      position:absolute;
+      top:5px;
+      left:5px;
+      background:rgba(0,0,0,0.6);
+      padding:4px 8px;
+      font-size:12px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="topbar">🔴 TRADING WAR ROOM PRO</div>
+
+<div class="controls">
+  <button onclick="showAll()">All Feeds</button>
+  <button onclick="fourMode()">4 Screen Mode</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+
+const streams = [
+  {name:"Euro news", url:"https://www.youtube.com/embed/Ap-UM1O9RBU"},
+  {name:"Weather", url:"https://www.youtube.com/embed/l0tl9g0Jnf0"},
+  {name:"Asianet", url:"https://www.youtube.com/embed/4wExBtPQ-JA"},
+  {name:"CBC", url:"https://www.youtube.com/embed/5vfaDsMhCF4"},
+  {name:"French", url:"https://www.youtube.com/embed/pykpO5kQJ98"},
+  {name:"Al Jazeera", url:"https://www.youtube.com/embed/gCNeDWCI0vo"},
+  {name:"Fox", url:"https://www.youtube.com/embed/C96oohpWBGw"},
+  {name:"Bloomberg", url:"https://www.youtube.com/embed/iEpJwprxDdk"},
+  {name:"NDTV", url:"https://www.youtube.com/embed/44OkuNBFNXc"},
+  {name:"Agenda TV", url:"https://www.youtube.com/embed/Tf_UjBMIzNo"}
+];
+
+const grid = document.getElementById("grid");
+
+// 🔥 LOAD ALL FEEDS
+function showAll() {
+  grid.innerHTML = "";
+
+  grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(400px, 1fr))";
+
+  streams.forEach(s => {
+    addFeed(s);
+  });
+}
+
+// 🔥 4 SCREEN MODE
+function fourMode() {
+  grid.innerHTML = "";
+
+  let selected = [];
+
+  streams.forEach((s, i) => {
+    let choice = prompt(`Add this stream? (yes/no)\n${i+1}: ${s.name}`);
+
+    if (choice && choice.toLowerCase() === "yes") {
+      selected.push(s);
+    }
+  });
+
+  if (selected.length === 0) return;
+
+  // limit to 4
+  selected = selected.slice(0,4);
+
+  grid.style.gridTemplateColumns = "repeat(2, 1fr)";
+
+  selected.forEach(s => {
+    addFeed(s, true);
+  });
+}
+
+// 🔥 CREATE FEED
+function addFeed(s, big=false) {
+  const div = document.createElement("div");
+  div.className = "feed";
+
+  div.innerHTML = `
+    <div class="label">${s.name}</div>
+    <iframe src="${s.url}?autoplay=1&mute=1"></iframe>
+  `;
+
+  if (big) {
+    div.querySelector("iframe").style.height = "400px";
+  }
+
+  grid.appendChild(div);
+}
+
+// INITIAL LOAD
+showAll();
+
+</script>
+
+</body>
+</html>
