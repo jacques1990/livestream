@@ -1,166 +1,184 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>4 Screen Trading Mode</title>
 
   <style>
     body {
-      margin:0;
-      background:#000;
-      font-family:Arial;
-      overflow:hidden;
+      margin: 0;
+      background: #000;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
     }
 
-    /* SELECTOR PANEL */
     .selector {
-      position:fixed;
-      top:0;
-      left:0;
-      width:100%;
-      background:#111;
-      color:white;
-      padding:10px;
-      z-index:10;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      box-sizing: border-box;
+      background: #111;
+      color: white;
+      padding: 10px;
+      z-index: 10;
+    }
+
+    .selector label {
+      display: inline-block;
+      margin: 5px 10px 5px 0;
     }
 
     .selector button {
-      padding:6px 10px;
-      margin:5px;
-      background:#333;
-      color:white;
-      border:none;
-      cursor:pointer;
+      padding: 6px 10px;
+      margin: 5px;
+      background: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
     }
 
     .selector button:hover {
-      background:red;
+      background: red;
     }
 
-    /* GRID */
     .grid {
-      position:absolute;
-      top:0;
-      left:0;
-      width:100%;
-      height:100vh;
-
-      display:grid;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100vh;
+      display: grid;
       grid-template-columns: 1fr 1fr;
       grid-template-rows: 1fr 1fr;
-
-      gap:0; /* 🔥 NO GAP */
-    }
-
-    .feed {
-      width:100%;
-      height:100%;
-      border:none;
+      gap: 0;
     }
 
     iframe {
-      width:100%;
-      height:100%;
-      border:none;
+      width: 100%;
+      height: 100%;
+      border: none;
     }
 
-    /* HIDE SELECTOR MODE */
     .pure .selector {
-      display:none;
+      display: none;
     }
   </style>
 </head>
 
 <body>
 
-<!-- SELECTOR -->
-<div class="selector">
-  <strong>Select 4 Streams:</strong><br>
-  <div id="checkboxes"></div>
-  <button onclick="startSplit()">▶ Start 4 Screen</button>
-  <button onclick="savePreset()">💾 Save</button>
-  <button onclick="loadPreset()">⚡ Preset</button>
-</div>
+  <div class="selector">
+    <strong>Select 4 Streams:</strong>
+    <div id="checkboxes">Loading streams...</div>
 
-<!-- GRID -->
-<div class="grid" id="grid"></div>
+    <button onclick="startSplit()">▶ Start 4 Screen</button>
+    <button onclick="savePreset()">💾 Save</button>
+    <button onclick="loadPreset()">⚡ Preset</button>
+  </div>
 
-<script>
+  <div class="grid" id="grid"></div>
 
-const streams = [
-     {name:"Euro News", url:"https://www.youtube.com/embed/oV-FWyi7MOU"},
-    {name:"Weather Network", url:"https://www.youtube.com/embed/8WUDUipeRnA"},
-    {name:"Asianet News", url:"https://www.youtube.com/embed/QB5BNdBFujE"},
-    {name:"CBC News", url:"https://www.youtube.com/embed/5vfaDsMhCF4"},
-    {name:"French News", url:"https://www.youtube.com/embed/pykpO5kQJ98"},
-    {name:"Al Jazeera", url:"https://www.youtube.com/embed/gCNeDWCI0vo"},
-    {name:"Fox News Live", url:"https://www.youtube.com/embed/C96oohpWBGw"},
-    {name:"Bloomberg", url:"https://www.youtube.com/embed/iEpJwprxDdk"},
-    {name:"NDTV", url:"https://www.youtube.com/embed/44OkuNBFNXc"},
-    {name:"Agenda Free TV", url:"https://www.youtube.com/embed/Tf_UjBMIzNo"},
-    {name:"24hrs", url:"https://www.youtube.com/embed/1wECsnGZcfc"},
-    {name:"nasa live", url:"https://www.youtube.com/embed/6RwfNBtepa4"},
-    {name:"AgendaFreetv", url:"https://www.youtube.com/embed/Vb67QGolLeQ"}
-const grid = document.getElementById("grid");
-const checkboxDiv = document.getElementById("checkboxes");
+  <script>
+    let streams = [];
 
-// 🔹 CREATE CHECKBOX UI
-streams.forEach((s, i) => {
-  checkboxDiv.innerHTML += `
-    <label>
-      <input type="checkbox" value="${i}"> ${s.name}
-    </label>
-  `;
-});
+    const grid = document.getElementById("grid");
+    const checkboxDiv = document.getElementById("checkboxes");
 
-// 🔹 START SPLIT
-function startSplit() {
-  grid.innerHTML = "";
+    // Load channel information from streams.json
+    async function loadStreams() {
+      try {
+        const response = await fetch("./streams.json");
 
-  const selected = [...document.querySelectorAll("input:checked")]
-    .map(cb => streams[cb.value])
-    .slice(0,4);
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
 
-  if (selected.length !== 4) {
-    alert("Select exactly 4 streams");
-    return;
-  }
+        streams = await response.json();
+        createCheckboxes();
+        loadPreset();
+      } catch (error) {
+        checkboxDiv.textContent = "Could not load streams.json";
+        console.error("JSON loading error:", error);
+      }
+    }
 
-  selected.forEach(s => {
-    const iframe = document.createElement("iframe");
-    iframe.src = s.url + "?autoplay=1&mute=1";
-    grid.appendChild(iframe);
-  });
+    function createCheckboxes() {
+      checkboxDiv.innerHTML = "";
 
-  // 🔥 PURE MODE (no UI)
-  document.body.classList.add("pure");
-}
+      streams.forEach((stream, index) => {
+        const label = document.createElement("label");
+        const checkbox = document.createElement("input");
 
-// 🔹 SAVE
-function savePreset() {
-  const selected = [...document.querySelectorAll("input:checked")]
-    .map(cb => cb.value);
+        checkbox.type = "checkbox";
+        checkbox.value = index;
 
-  localStorage.setItem("fav4", JSON.stringify(selected));
-  alert("Saved!");
-}
+        label.appendChild(checkbox);
+        label.append(` ${stream.name}`);
 
-// 🔹 LOAD
-function loadPreset() {
-  const saved = JSON.parse(localStorage.getItem("fav4") || "[]");
+        checkboxDiv.appendChild(label);
+      });
+    }
 
-  document.querySelectorAll("input").forEach(cb => {
-    cb.checked = saved.includes(cb.value);
-  });
-}
+    function startSplit() {
+      const selected = [...document.querySelectorAll(
+        '#checkboxes input[type="checkbox"]:checked'
+      )]
+        .map(checkbox => streams[Number(checkbox.value)])
+        .slice(0, 4);
 
-// 🔹 ESC to exit pure mode
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    document.body.classList.remove("pure");
-  }
-});
+      if (selected.length !== 4) {
+        alert("Select exactly 4 streams");
+        return;
+      }
 
-</script>
+      grid.innerHTML = "";
+
+      selected.forEach(stream => {
+        const iframe = document.createElement("iframe");
+
+        iframe.src = `${stream.url}?autoplay=1&mute=1`;
+        iframe.title = stream.name;
+        iframe.allow =
+          "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+        iframe.allowFullscreen = true;
+
+        grid.appendChild(iframe);
+      });
+
+      document.body.classList.add("pure");
+    }
+
+    function savePreset() {
+      const selected = [...document.querySelectorAll(
+        '#checkboxes input[type="checkbox"]:checked'
+      )].map(checkbox => checkbox.value);
+
+      localStorage.setItem("fav4", JSON.stringify(selected));
+      alert("Saved!");
+    }
+
+    function loadPreset() {
+      const saved = JSON.parse(
+        localStorage.getItem("fav4") || "[]"
+      );
+
+      document.querySelectorAll(
+        '#checkboxes input[type="checkbox"]'
+      ).forEach(checkbox => {
+        checkbox.checked = saved.includes(checkbox.value);
+      });
+    }
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        document.body.classList.remove("pure");
+      }
+    });
+
+    loadStreams();
+  </script>
 
 </body>
 </html>
